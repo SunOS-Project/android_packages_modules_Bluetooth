@@ -84,6 +84,7 @@ static constexpr uint32_t kMaxIntervalMs = INT_MAX;  // INT_MAX
 static constexpr uint8_t kMaxRetryCounterForCreateConfig = 0x03;
 long long proc_start_timestampMs;
 long long curr_proc_complete_timestampMs;
+static constexpr uint16_t kInvalidConnInterval = 0;  // valid value is from 0x0006 to 0x0C80
 
 struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
   struct CsProcedureData {
@@ -235,6 +236,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
     // RAS data
     RangingHeader ranging_header_;
     PacketViewForRecombination segment_data_;
+    uint16_t conn_interval_ = kInvalidConnInterval;
   };
 
   void OnOpened(
@@ -531,11 +533,12 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
 
   void handle_ras_client_connected_event(
           const Address address, uint16_t connection_handle, uint16_t att_handle,
-          const std::vector<hal::VendorSpecificCharacteristic> vendor_specific_data) {
+          const std::vector<hal::VendorSpecificCharacteristic> vendor_specific_data,
+          uint16_t conn_interval) {
     log::info(
             "address:{}, connection_handle 0x{:04x}, att_handle 0x{:04x}, size of "
-            "vendor_specific_data {}",
-            address, connection_handle, att_handle, vendor_specific_data.size());
+            "vendor_specific_data {}, conn_interval {}",
+            address, connection_handle, att_handle, vendor_specific_data.size(), conn_interval);
 
     auto it = cs_requester_trackers_.find(connection_handle);
     if (it == cs_requester_trackers_.end()) {
@@ -546,6 +549,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
       log::debug("Already connected");
       return;
     }
+    it->second.conn_interval_ = conn_interval;
     it->second.ras_connected = true;
     it->second.state = CsTrackerState::RAS_CONNECTED;
 
@@ -554,6 +558,17 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
       return;
     }
     start_distance_measurement_with_cs(it->second.address, connection_handle);
+  }
+
+  void handle_conn_interval_updated(const Address& address, uint16_t connection_handle,
+                                    uint16_t conn_interval) {
+    auto it = cs_requester_trackers_.find(connection_handle);
+    if (it == cs_requester_trackers_.end()) {
+      log::warn("can't find tracker for 0x{:04x}, address - {} ", connection_handle, address);
+      return;
+    }
+    log::info("interval updated as {}", conn_interval);
+    it->second.conn_interval_ = conn_interval;
   }
 
   void handle_ras_client_disconnected_event(const Address address) {
@@ -737,6 +752,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
     if (cs_requester_trackers_.find(connection_handle) == cs_requester_trackers_.end()) {
       log::warn("no cs tracker found for {}", connection_handle);
     }
+    log::debug("send cs create config");
     cs_requester_trackers_[connection_handle].state = CsTrackerState::WAIT_FOR_CONFIG_COMPLETE;
 
     bool config_avb = false;
@@ -2017,6 +2033,16 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
         raw_data.vendor_specific_cs_single_side_data.push_back(live_tracker->n_procedure_count & 0xFF);
         raw_data.vendor_specific_cs_single_side_data.push_back((live_tracker->max_procedure_len >> 8) & 0xFF);
         raw_data.vendor_specific_cs_single_side_data.push_back(live_tracker->max_procedure_len & 0xFF);
+        raw_data.vendor_specific_cs_single_side_data.push_back((live_tracker->conn_interval_ >> 8) & 0xFF);
+        raw_data.vendor_specific_cs_single_side_data.push_back(live_tracker->conn_interval_ & 0xFF);
+        uint32_t num_AntPIs = procedure_data->antenna_permutation_index_initiator.size();
+        raw_data.vendor_specific_cs_single_side_data.push_back((num_AntPIs >> 24) & 0xFF);
+        raw_data.vendor_specific_cs_single_side_data.push_back((num_AntPIs >> 16) & 0xFF);
+        raw_data.vendor_specific_cs_single_side_data.push_back((num_AntPIs >> 8) & 0xFF);
+        raw_data.vendor_specific_cs_single_side_data.push_back(num_AntPIs & 0xFF);
+        for (uint32_t i=0;i<num_AntPIs;i++) {
+          raw_data.vendor_specific_cs_single_side_data.push_back(procedure_data->antenna_permutation_index_initiator[i]);
+        }
         
         
         struct timeval tv;
@@ -2567,9 +2593,17 @@ void DistanceMeasurementManager::StopDistanceMeasurement(const Address& address,
 
 void DistanceMeasurementManager::HandleRasClientConnectedEvent(
         const Address& address, uint16_t connection_handle, uint16_t att_handle,
-        const std::vector<hal::VendorSpecificCharacteristic>& vendor_specific_data) {
+        const std::vector<hal::VendorSpecificCharacteristic>& vendor_specific_data,
+        uint16_t conn_interval) {
   CallOn(pimpl_.get(), &impl::handle_ras_client_connected_event, address, connection_handle,
-         att_handle, vendor_specific_data);
+         att_handle, vendor_specific_data, conn_interval);
+}
+
+void DistanceMeasurementManager::HandleConnIntervalUpdated(const Address& address,
+                                                           uint16_t connection_handle,
+                                                           uint16_t conn_interval) {
+  CallOn(pimpl_.get(), &impl::handle_conn_interval_updated, address, connection_handle,
+         conn_interval);
 }
 
 void DistanceMeasurementManager::HandleRasClientDisconnectedEvent(const Address& address) {
