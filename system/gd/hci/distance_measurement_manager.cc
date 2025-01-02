@@ -1687,6 +1687,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
                 parse_index += data_len;
                 log::verbose("step_data: {}", tone_data_view.ToString());
                 permutation_index = tone_data_view.antenna_permutation_index_;
+                procedure_data->antenna_permutation_index_reflector.push_back(permutation_index);
                 procedure_data->rssi_initiator.emplace_back(tone_data_view.packet_rssi_);
                 procedure_data->toa_tod_initiators.emplace_back(tone_data_view.toa_tod_initiator_);
                 procedure_data->packet_quality_initiator.emplace_back(
@@ -1836,7 +1837,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
     for (uint8_t i = 0; i < data_list.size(); i++) {
       if (data_list[i].counter == counter) {
         procedure_data = &data_list[i];
-        break;
+        // break;
       }
     }
     if (procedure_data == nullptr) {
@@ -2144,6 +2145,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
               }
               log::verbose("step_data: {}", tone_data_view.ToString());
               permutation_index = tone_data_view.antenna_permutation_index_;
+              procedure_data.antenna_permutation_index_reflector.push_back(permutation_index);
               procedure_data.rssi_reflector.emplace_back(tone_data_view.packet_rssi_);
               procedure_data.tod_toa_reflectors.emplace_back(tone_data_view.tod_toa_reflector_);
               procedure_data.packet_quality_reflector.emplace_back(tone_data_view.packet_quality_);
