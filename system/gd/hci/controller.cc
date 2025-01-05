@@ -37,6 +37,7 @@
 #include "sysprops/sysprops_module.h"
 #endif
 
+extern bool host_supports_cs;
 namespace bluetooth {
 namespace hci {
 
@@ -83,8 +84,7 @@ struct Controller::impl {
                                              std::move(features_promise)));
     features_future.wait();
 
-    if (com::android::bluetooth::flags::channel_sounding_in_stack() &&
-        module_.SupportsBleChannelSounding()) {
+    if (host_supports_cs && module_.SupportsBleChannelSounding()) {
       le_set_event_mask(MaskLeEventMask(
           local_version_information_.hci_version_, kDefaultLeEventMask | kLeCSEventMask));
     } else {
@@ -200,8 +200,7 @@ struct Controller::impl {
           handler->BindOnceOn(this, &Controller::impl::le_set_host_feature_handler));
     }
 
-    if (com::android::bluetooth::flags::channel_sounding_in_stack() &&
-        module_.SupportsBleChannelSounding()) {
+    if (host_supports_cs && module_.SupportsBleChannelSounding()) {
       hci_->EnqueueCommand(
           LeSetHostFeatureBuilder::Create(
               LeHostFeatureBits::CHANNEL_SOUNDING_HOST_SUPPORT, Enable::ENABLED),
