@@ -1079,6 +1079,14 @@ public class BassClientStateMachine extends StateMachine {
             mSetBroadcastPINMetadata = null;
             checkAndUpdateBroadcastCode(recvState);
             processPASyncState(recvState);
+            if (mBluetoothLeBroadcastReceiveStates.size() == mNumOfBroadcastReceiverStates) {
+                log("The last receive state");
+                if (mLastConnectionState != BluetoothProfile.STATE_CONNECTED) {
+                    broadcastConnectionState(
+                            mDevice, mLastConnectionState, BluetoothProfile.STATE_CONNECTED);
+                    mLastConnectionState = BluetoothProfile.STATE_CONNECTED;
+                }
+            }
         } else {
             log("Updated receiver state: " + recvState);
             mBluetoothLeBroadcastReceiveStates.replace(characteristic.getInstanceId(), recvState);
@@ -1929,10 +1937,6 @@ public class BassClientStateMachine extends StateMachine {
                             + "): "
                             + messageWhatToString(getCurrentMessage().what));
             removeDeferredMessages(CONNECT);
-            if (mLastConnectionState != BluetoothProfile.STATE_CONNECTED) {
-                broadcastConnectionState(
-                        mDevice, mLastConnectionState, BluetoothProfile.STATE_CONNECTED);
-            }
         }
 
         @Override
@@ -1942,7 +1946,6 @@ public class BassClientStateMachine extends StateMachine {
                             + mDevice
                             + "): "
                             + messageWhatToString(getCurrentMessage().what));
-            mLastConnectionState = BluetoothProfile.STATE_CONNECTED;
         }
 
         private void writeBassControlPoint(byte[] value) {
