@@ -874,6 +874,7 @@ public class BassClientStateMachine extends StateMachine {
                     msg.arg2 = BluetoothLeBroadcastReceiveState.PA_SYNC_STATE_IDLE;
                     msg.obj = metaDataToUpdate;
                     sendMessage(msg);
+                    return;
                 }
             }
             Message m = obtainMessage(BassClientStateMachine.REMOVE_BCAST_SOURCE);

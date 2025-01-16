@@ -4832,6 +4832,7 @@ public class LeAudioService extends ProfileService {
                         && isAudioModeChangedFromCommunicationToNormal(
                                 previousAudioMode, mCurrentAudioMode)
                         && (getActiveGroupId() == LE_AUDIO_GROUP_ID_INVALID)
+                        && mBroadcastIdDeactivatedForUnicastTransition.isPresent()
                         && !isPlaying(mBroadcastIdDeactivatedForUnicastTransition.get())) {
                     stopBroadcast(mBroadcastIdDeactivatedForUnicastTransition.get());
                     mBroadcastIdDeactivatedForUnicastTransition = Optional.empty();
