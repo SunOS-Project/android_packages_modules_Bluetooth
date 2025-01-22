@@ -1322,10 +1322,20 @@ class LeAudioClientImpl : public LeAudioClient {
       }
     }
 
+    log::debug("reconfigure: {} ", reconfigure);
     if (reconfigure) {
-      ReconfigureOrUpdateRemote(group, bluetooth::le_audio::types::kLeAudioDirectionSink);
+      if (in_call_) {
+        if (((audio_sender_state_ == AudioState::IDLE) &&
+             (audio_receiver_state_ == AudioState::IDLE)) ||
+            (audio_sender_state_ > AudioState::IDLE)) {
+          ReconfigureOrUpdateRemote(group, bluetooth::le_audio::types::kLeAudioDirectionSink);
+        } else if (audio_receiver_state_ > AudioState::IDLE) {
+          ReconfigureOrUpdateRemote(group, bluetooth::le_audio::types::kLeAudioDirectionSource);
+        }
+      } else {
+        ReconfigureOrUpdateRemote(group, bluetooth::le_audio::types::kLeAudioDirectionSink);
+      }
     }
-    //ProcessCallAvailbilityToUpdateMetadata(in_call);
   }
 
   bool IsInCall() override {
