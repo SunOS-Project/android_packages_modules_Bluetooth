@@ -1892,6 +1892,14 @@ public class LeAudioService extends ProfileService {
                         + ". Currently active device is "
                         + mActiveAudioOutDevice);
 
+        if (isVoipLeaWarEnabled()) {
+            if (wasSetSinkListeningMode() && device == null
+                    && mActiveAudioInDevice != null) {
+                Log.d(TAG, "ignore null device update if broadcast created");
+                return;
+            }
+        }
+
         mAdapterService.handleActiveDeviceChange(BluetoothProfile.LE_AUDIO, device);
         sentActiveDeviceChangeIntent(device);
         notifyVolumeControlServiceAboutActiveGroup(device);
