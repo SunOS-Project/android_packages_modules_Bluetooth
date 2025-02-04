@@ -89,7 +89,12 @@ class BluetoothChannelSoundingSessionTracker : public BnBluetoothChannelSounding
             .result_meters_ = in_result.resultMeters,
             .confidence_level_ = in_result.confidenceLevel,
     };
-    ranging_hal_callback_->OnResult(connection_handle_, ranging_result);
+    log::info("confidence_level_ {} ", in_result.confidenceLevel);
+    if(in_result.confidenceLevel != -1) {
+        ranging_hal_callback_->OnResult(connection_handle_, ranging_result);
+    } else {
+        log::info("confidence Level is -1 Distance ignored");
+    }
     return ::ndk::ScopedAStatus::ok();
   };
 
