@@ -80,7 +80,7 @@ static constexpr uint16_t kMtuForRasData = 507;            // 512 - 5
 static constexpr uint16_t kRangingCounterMask = 0x0FFF;
 static constexpr uint8_t kInvalidConfigId = 0xFF;
 static constexpr uint16_t kDefaultIntervalMs = 1000;  // 1s
-static constexpr uint32_t kMaxIntervalMs = 3600*1000;  // 3600
+static constexpr uint32_t kMaxIntervalMs = INT_MAX;  // INT_MAX
 static constexpr uint8_t kMaxRetryCounterForCreateConfig = 0x03;
 long long proc_start_timestampMs;
 long long curr_proc_complete_timestampMs;
