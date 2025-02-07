@@ -839,7 +839,7 @@
             "name": "VND_Two-OneChan-SnkAse-Aptx_LeX_V1_32_2-Two-OneChan-SrcAse-Aptx_LeX_V1_32_2_L_R",
             "codec_config_name": "VND_Two-OneChan-SnkAse-Aptx_LeX_V1_32_2-Two-OneChan-SrcAse-Aptx_LeX_V1_32_2_L_R",
             "qos_config_name": [
-                "QoS_Config_32_2_1"
+                "VND_QoS_Config_R3_L10"
 	    ],
             "codec_metadata_name": [
                 "VND_AptxLeX_V1_VS_Metadata"
@@ -849,7 +849,7 @@
             "name": "VND_Two-OneChan-SnkAse-Aptx_LeX_V1_32_2-Two-OneChan-SrcAse-Aptx_LeX_V1_32_2",
             "codec_config_name": "VND_Two-OneChan-SnkAse-Aptx_LeX_V1_32_2-Two-OneChan-SrcAse-Aptx_LeX_V1_32_2",
             "qos_config_name": [
-                "QoS_Config_32_2_1"
+                "VND_QoS_Config_R3_L10"
 	    ],
             "codec_metadata_name": [
                 "VND_AptxLeX_V1_VS_Metadata"
@@ -8229,6 +8229,11 @@
             "name": "QoS_Config_48_4_2",
             "retransmission_number": 13,
             "max_transport_latency": 100
+        },
+        {
+            "name": "VND_QoS_Config_R3_L10",
+            "retransmission_number": 3,
+            "max_transport_latency": 10
         },
         {
             "name": "VND_QoS_Config_R31_L100",
