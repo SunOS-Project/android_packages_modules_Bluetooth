@@ -684,7 +684,10 @@ public class ActiveDeviceManager implements AdapterService.BluetoothStateCallbac
                         && mAdapterService.isAllSupportedClassicAudioProfilesActive(device)) {
                     setLeAudioActiveDevice(device);
                 } else {
-                    setLeAudioActiveDevice(null, true);
+                    if (device != null) {
+                        Log.d(TAG, " Don't remove already active leAudio device.");
+                        setLeAudioActiveDevice(null, true);
+                    }
                 }
             } else {
                 if (device != null && Utils.isDualModeAudioEnabled()
