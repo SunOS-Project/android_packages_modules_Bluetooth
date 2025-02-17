@@ -1490,6 +1490,7 @@ class LeAudioClientImpl : public LeAudioClient {
      * is different from audio framework to avoid audio choppy
      * this is called when we bluetooth frame duration is changed
      */
+    log::verbose("");
     log::assert_that(active_group_id_ != bluetooth::groups::kGroupUnknown, "Active group is not set.");
     log::assert_that(le_audio_source_hal_client_ != nullptr, "Source session not acquired");
     log::assert_that(le_audio_sink_hal_client_ != nullptr, "Sink session not acquired");
