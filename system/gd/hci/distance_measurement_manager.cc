@@ -49,7 +49,6 @@
 using namespace bluetooth::ras;
 using bluetooth::hci::acl_manager::PacketViewForRecombination;
 
-extern bool host_supports_cs;
 namespace bluetooth {
 namespace hci {
 const ModuleFactory DistanceMeasurementManager::Factory =
@@ -305,10 +304,6 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
 
     hci_layer_->RegisterLeEventHandler(hci::SubeventCode::TRANSMIT_POWER_REPORTING,
                                        handler_->BindOn(this, &impl::on_transmit_power_reporting));
-    if (!host_supports_cs) {
-      log::info("host is not supporting channel sounding: false");
-      return;
-    }
     distance_measurement_interface_ = hci_layer_->GetDistanceMeasurementInterface(
             handler_->BindOn(this, &DistanceMeasurementManager::impl::handle_event));
     distance_measurement_interface_->EnqueueCommand(
@@ -323,7 +318,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
 
   void register_distance_measurement_callbacks(DistanceMeasurementCallbacks* callbacks) {
     distance_measurement_callbacks_ = callbacks;
-    if (host_supports_cs && ranging_hal_->IsBound()) {
+    if (ranging_hal_->IsBound()) {
       auto vendor_specific_data = ranging_hal_->GetVendorSpecificCharacteristics();
       if (!vendor_specific_data.empty()) {
         distance_measurement_callbacks_->OnVendorSpecificCharacteristics(vendor_specific_data);
@@ -334,14 +329,6 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
   void set_cs_params(const Address& cs_remote_address, int mSightType, int mLocationType,
 		     int mCsSecurityLevel, int mFrequency, int mDuration) {
     uint16_t connection_handle = acl_manager_->HACK_GetLeHandle(cs_remote_address);
-
-    if (!host_supports_cs) {
-      log::error("Channel Sounding is not enabled");
-      distance_measurement_callbacks_->OnDistanceMeasurementStopped(
-		      cs_remote_address, REASON_INTERNAL_ERROR, METHOD_CS);
-      return;
-    }
-
     log::info("Address:{}, CsSecurityLevel:{} frequency:{}",
 		    cs_remote_address, mCsSecurityLevel, mFrequency);
     if (set_cs_params_.find(connection_handle) != set_cs_params_.end() &&
@@ -461,13 +448,6 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
   void start_distance_measurement_with_cs(const Address& cs_remote_address,
                                           uint16_t connection_handle) {
     log::info("connection_handle: {}, address: {}", connection_handle, cs_remote_address);
-    if (!host_supports_cs) {
-      log::error("Channel Sounding is not enabled");
-      distance_measurement_callbacks_->OnDistanceMeasurementStopped(
-              cs_remote_address, REASON_INTERNAL_ERROR, METHOD_CS);
-      return;
-    }
-
     if (!cs_requester_trackers_[connection_handle].ras_connected) {
       log::info("Waiting for RAS connected");
       return;
@@ -1099,7 +1079,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
     if (event_view.GetAction() == CsAction::CONFIG_REMOVED) {
       return;
     }
-    log::info("Get {}", event_view.ToString());
+    log::verbose("Get {}", event_view.ToString());
     live_tracker->role = event_view.GetRole();
     live_tracker->main_mode_type = event_view.GetMainModeType();
     live_tracker->sub_mode_type = event_view.GetSubModeType();
@@ -1330,9 +1310,11 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
       reference_power_level = cs_event_result.GetReferencePowerLevel();
       log::warn("reference power level: {}", reference_power_level);
 
-      log::info("LE_CS_SUBEVENT_RESULT: start_acl_conn_event {} procedure_counter {} acl_handle {}",
-		 cs_event_result.GetStartAclConnEvent(), cs_event_result.GetProcedureCounter(),
-		 cs_event_result.GetConnectionHandle());
+      log::verbose(
+          "LE_CS_SUBEVENT_RESULT: start_acl_conn_event {} procedure_counter {} acl_handle {}",
+          cs_event_result.GetStartAclConnEvent(),
+          cs_event_result.GetProcedureCounter(),
+          cs_event_result.GetConnectionHandle());
     } else {
       auto cs_event_result = LeCsSubeventResultContinueView::Create(event);
       if (!cs_event_result.IsValid()) {
@@ -1487,8 +1469,10 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
       return;
     }
 
-    log::info("Receive segment for segment counter {}, size {}",
-               segmentation_header.rolling_segment_counter_, raw_data.size());
+    log::verbose(
+        "Receive segment for segment counter {}, size {}",
+        segmentation_header.rolling_segment_counter_,
+        raw_data.size());
 
     PacketView<kLittleEndian> segment_data(std::make_shared<std::vector<uint8_t>>(raw_data));
     if (segmentation_header.first_segment_) {
@@ -1536,7 +1520,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
 
   void parse_ras_segments(RangingHeader ranging_header, PacketViewForRecombination& segment_data,
                           uint16_t connection_handle) {
-    log::info("Data size {}, Ranging_header {}", segment_data.size(), ranging_header.ToString());
+    log::verbose("Data size {}, Ranging_header {}", segment_data.size(), ranging_header.ToString());
     auto procedure_data =
             get_procedure_data_for_ras(connection_handle, ranging_header.ranging_counter_);
     if (procedure_data == nullptr) {
@@ -1579,7 +1563,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
           return;
         }
         parse_index = after;
-        log::info("step:{}, {}", (uint16_t)i, step_mode.ToString());
+        log::verbose("step:{}, {}", (uint16_t)i, step_mode.ToString());
         if (step_mode.aborted_) {
           continue;
         }
@@ -1603,9 +1587,9 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
                           CsRoleText(remote_role));
                 return;
               }
-			  log::info("step_data: {}", tone_data.ToString());
-			  procedure_data->packet_quality_reflector.push_back(tone_data.packet_quality_);
-			  procedure_data->rssi_reflector.push_back(tone_data.packet_rssi_);
+              log::verbose("step_data: {}", tone_data.ToString());
+              procedure_data->packet_quality_reflector.push_back(tone_data.packet_quality_);
+              procedure_data->rssi_reflector.push_back(tone_data.packet_rssi_);
             }
             parse_index = after;
           } break;
@@ -1710,8 +1694,8 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
               double i_value = get_iq_value(tone_data.tone_data_[k].i_sample_);
               double q_value = get_iq_value(tone_data.tone_data_[k].q_sample_);
               uint8_t tone_quality_indicator = tone_data.tone_data_[k].tone_quality_indicator_;
-              log::info("antenna_path {}, {:f}, {:f}", (uint16_t)(antenna_path + 1), i_value,
-                           q_value);
+              log::verbose(
+                  "antenna_path {}, {:f}, {:f}", (uint16_t)(antenna_path + 1), i_value, q_value);
               if (remote_role == CsRole::INITIATOR) {
                 procedure_data->tone_pct_initiator[antenna_path].emplace_back(i_value, q_value);
                 procedure_data->tone_quality_indicator_initiator[antenna_path].emplace_back(
@@ -1879,7 +1863,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
         return &data;
       }
     }
-    log::info("Create data for procedure_counter: {}", procedure_counter);
+    log::verbose("Create data for procedure_counter: {}", procedure_counter);
     data_list.emplace_back(procedure_counter, num_antenna_paths, live_tracker->config_id,
                            live_tracker->selected_tx_power);
 
@@ -2023,9 +2007,11 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
 	    gettimeofday(&tv, NULL);
 	    curr_proc_complete_timestampMs  = tv.tv_sec*1e6*1ll + tv.tv_usec*1ll;
         raw_data.timestampMs_ = (long)(curr_proc_complete_timestampMs - proc_start_timestampMs);
-		log::info("timestampMs_: {} current_proc : {} proc start :{}",
-		            raw_data.timestampMs_, curr_proc_complete_timestampMs,
-		            proc_start_timestampMs);
+        log::verbose(
+            "timestampMs_: {} current_proc : {} proc start :{}",
+            raw_data.timestampMs_,
+            curr_proc_complete_timestampMs,
+            proc_start_timestampMs);
 
         for (size_t i=0;i<raw_data.vendor_specific_cs_single_side_data.size();i++) {
           log::warn("Vendor Specific data : {}", raw_data.vendor_specific_cs_single_side_data[i]);
