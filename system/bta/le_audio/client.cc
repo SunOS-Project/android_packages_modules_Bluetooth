@@ -5735,6 +5735,8 @@ class LeAudioClientImpl : public LeAudioClient {
         remote_metadata.get(remote_direction).test_any(live_context) &&
         remote_metadata.get(remote_other_direction).test_any(game_context)) {
       log::debug("Gaming vbc enabled");
+      local_metadata_context_types_.sink = game_context;
+      local_metadata_context_types_.source = game_context;
       is_game_vbc = true;
     }
 
