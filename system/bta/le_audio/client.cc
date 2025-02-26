@@ -5020,8 +5020,10 @@ class LeAudioClientImpl : public LeAudioClient {
           defer_sink_suspend_ack_until_stop_ = true;
           OnAudioSuspend();
         } else {
-          log::info("calling sink ConfirmSuspendRequest in audio_receiver_state_ IDLE");
-          le_audio_sink_hal_client_->ConfirmSuspendRequest();
+          if (le_audio_sink_hal_client_) {
+            log::info("calling sink ConfirmSuspendRequest in audio_receiver_state_ IDLE");
+            le_audio_sink_hal_client_->ConfirmSuspendRequest();
+          }
         }
         return;
       case AudioState::READY_TO_RELEASE:
