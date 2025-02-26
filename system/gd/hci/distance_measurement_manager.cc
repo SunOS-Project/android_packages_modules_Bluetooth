@@ -1324,7 +1324,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
       ras_subevent_header.reference_power_level_ = cs_event_result.GetReferencePowerLevel();
       ras_subevent_header.num_steps_reported_ = 0;
       reference_power_level = cs_event_result.GetReferencePowerLevel();
-      log::warn("reference power level: {}", reference_power_level);
+      log::verbose("reference power level: {}", reference_power_level);
 
       log::verbose(
           "LE_CS_SUBEVENT_RESULT: start_acl_conn_event {} procedure_counter {} acl_handle {}",
@@ -2039,9 +2039,8 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
             curr_proc_complete_timestampMs,
             proc_start_timestampMs);
 
-        for (size_t i=0;i<raw_data.vendor_specific_cs_single_side_data.size();i++) {
-          log::warn("Vendor Specific data : {}", raw_data.vendor_specific_cs_single_side_data[i]);
-        }
+        log::verbose("Vendor Specific data : [{}]",
+            fmt::join(raw_data.vendor_specific_cs_single_side_data, ", "));
         ranging_hal_->WriteRawData(connection_handle, raw_data); 
       }
     }
