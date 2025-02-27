@@ -2949,9 +2949,15 @@ public class HeadsetService extends ProfileService {
     /** Retrieves the most recently connected device in the A2DP connected devices list. */
     public BluetoothDevice getFallbackDevice() {
         DatabaseManager dbManager = mAdapterService.getDatabase();
-        return dbManager != null
-                ? dbManager.getMostRecentlyConnectedDevicesInList(getFallbackCandidates(dbManager))
-                : null;
+        if (dbManager != null) {
+            BluetoothDevice mostRecentDevice =
+                dbManager
+                    .getMostRecentlyConnectedDevicesInList(getFallbackCandidates(dbManager));
+            if (mostRecentDevice != null) {
+                return mostRecentDevice.equals(getActiveDevice()) ? null : mostRecentDevice;
+            }
+        }
+        return null;
     }
 
     @VisibleForTesting(visibility = VisibleForTesting.Visibility.PACKAGE)
