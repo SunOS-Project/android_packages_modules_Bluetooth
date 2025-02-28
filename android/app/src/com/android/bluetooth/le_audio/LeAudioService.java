@@ -3154,11 +3154,11 @@ public class LeAudioService extends ProfileService {
             }
         }
 
-        if (!retry) {
-            if (mScanCallback != null) {
-                Log.d(TAG, "startAudioServersBackgroundScan: Scanning already enabled");
-                return;
-            }
+        if (!retry && mScanCallback != null) {
+            Log.d(TAG, "startAudioServersBackgroundScan: Scanning already enabled");
+            return;
+        } else if(mScanCallback == null){
+            Log.d(TAG, "startAudioServersBackgroundScan: mScanCallback is null, reinitialize");
             mScanCallback = new AudioServerScanCallback();
         }
 
