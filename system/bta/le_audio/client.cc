@@ -1698,7 +1698,7 @@ class LeAudioClientImpl : public LeAudioClient {
            bluetooth::le_audio::types::kLeAudioDirectionSource);
 
       //Below to ensure CIS termination before updating to app about inactive.
-      if (group->GetState() != AseState::BTA_LE_AUDIO_ASE_STATE_IDLE) {
+      if (!group->IsReleasingOrIdle()) {
         defer_notify_inactive_until_stop_ = true;
         //Race condition between Reconfigure(due to, MetadataUpdate)
         //and groupsetactive to null
@@ -6761,7 +6761,7 @@ class LeAudioClientImpl : public LeAudioClient {
            */
           log::error("Internal state machine error");
           group->PrintDebugState();
-          if (group->GetState() != AseState::BTA_LE_AUDIO_ASE_STATE_IDLE) {
+          if (!group->IsReleasingOrIdle()) {
             defer_notify_inactive_until_stop_ = true;
           }
           groupSetAndNotifyInactive();
