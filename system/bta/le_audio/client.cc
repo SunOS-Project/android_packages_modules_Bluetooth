@@ -632,6 +632,10 @@ class LeAudioClientImpl : public LeAudioClient {
       }
     }
 
+    bluetooth::le_audio::send_vs_cmd(LTV_TYPE_BAP_TIMEOUT_INDICATION, 0,
+                     std::vector<uint8_t>(leAudioDevice->address_.address,
+                     leAudioDevice->address_.address+6));
+
     /* If Timeout happens on stream close and stream is closing just for the
      * purpose of device disconnection, do not bother with recovery mode
      */
@@ -4673,6 +4677,8 @@ class LeAudioClientImpl : public LeAudioClient {
       timeoutMs += kAudioDisableTimeoutMs;
     }
 
+    bluetooth::le_audio::send_vs_cmd(LTV_TYPE_STREAM_INDICATION,
+        0x04, std::vector<uint8_t>());
     log::debug("Stream suspend_timeout_ started: {} ms",
                static_cast<int>(timeoutMs));
     if (alarm_is_scheduled(suspend_timeout_)) alarm_cancel(suspend_timeout_);
