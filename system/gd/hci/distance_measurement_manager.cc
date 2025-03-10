@@ -35,6 +35,7 @@
 #include "common/strings.h"
 #include "hal/ranging_hal.h"
 #include "hci/acl_manager.h"
+#include "hci/controller.h"
 #include "hci/distance_measurement_interface.h"
 #include "hci/event_checkers.h"
 #include "hci/hci_layer.h"
@@ -297,15 +298,20 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
   }
 
   ~impl() {}
-  void start(os::Handler* handler, hal::RangingHal* ranging_hal, hci::HciLayer* hci_layer,
-             hci::AclManager* acl_manager) {
+  void start(os::Handler* handler, hci::Controller* controller, hal::RangingHal* ranging_hal,
+             hci::HciLayer* hci_layer, hci::AclManager* acl_manager) {
     handler_ = handler;
+    controller_ = controller;
     ranging_hal_ = ranging_hal;
     hci_layer_ = hci_layer;
     acl_manager_ = acl_manager;
 
     hci_layer_->RegisterLeEventHandler(hci::SubeventCode::TRANSMIT_POWER_REPORTING,
                                        handler_->BindOn(this, &impl::on_transmit_power_reporting));
+    if (!controller_->SupportsBleChannelSounding()) {
+      log::info("The controller doesn't support Channel Sounding feature.");
+      return;
+    }
     distance_measurement_interface_ = hci_layer_->GetDistanceMeasurementInterface(
             handler_->BindOn(this, &DistanceMeasurementManager::impl::handle_event));
     distance_measurement_interface_->EnqueueCommand(
@@ -2503,6 +2509,7 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
 
   os::Handler* handler_;
   hal::RangingHal* ranging_hal_;
+  hci::Controller* controller_;
   hci::HciLayer* hci_layer_;
   hci::AclManager* acl_manager_;
   hci::DistanceMeasurementInterface* distance_measurement_interface_;
@@ -2534,13 +2541,14 @@ DistanceMeasurementManager::~DistanceMeasurementManager() = default;
 
 void DistanceMeasurementManager::ListDependencies(ModuleList* list) const {
   list->add<hal::RangingHal>();
+  list->add<hci::Controller>();
   list->add<hci::HciLayer>();
   list->add<hci::AclManager>();
 }
 
 void DistanceMeasurementManager::Start() {
-  pimpl_->start(GetHandler(), GetDependency<hal::RangingHal>(), GetDependency<hci::HciLayer>(),
-                GetDependency<AclManager>());
+  pimpl_->start(GetHandler(), GetDependency<hci::Controller>(), GetDependency<hal::RangingHal>(),
+                GetDependency<hci::HciLayer>(), GetDependency<AclManager>());
 }
 
 void DistanceMeasurementManager::Stop() { pimpl_->stop(); }
