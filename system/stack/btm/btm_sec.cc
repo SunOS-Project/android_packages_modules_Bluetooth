@@ -3578,9 +3578,6 @@ static void read_encryption_key_size_complete_after_encryption_change(
                          1 /* enable */);
 }
 
-// TODO: Remove
-void smp_cancel_start_encryption_attempt();
-
 /*******************************************************************************
  *
  * Function         btm_encryption_change_evt
@@ -3597,7 +3594,21 @@ void btm_sec_encryption_change_evt(uint16_t handle, tHCI_STATUS status,
       !bluetooth::shim::GetController()->IsSupported(
           bluetooth::hci::OpCode::READ_ENCRYPTION_KEY_SIZE)) {
     if (status == HCI_ERR_CONNECTION_TOUT) {
-      smp_cancel_start_encryption_attempt();
+      tBTM_SEC_DEV_REC* p_dev_rec = btm_find_dev_by_handle(handle);
+      if (p_dev_rec == nullptr) {
+        log::warn(
+            "Received encryption change for unknown device handle:0x{:04x} "
+            "status:{} enable:0x{:x}",
+            handle, hci_status_code_text(status), encr_enable);
+        smp_cancel_start_encryption_attempt(RawAddress::kEmpty);
+      } else {
+        smp_cancel_start_encryption_attempt(p_dev_rec->bd_addr);
+      }
+      return;
+    }
+
+    if (status == HCI_ERR_NO_CONNECTION) {
+      smp_cancel_start_encryption_attempt(RawAddress::kEmpty);
       return;
     }
 
