@@ -2493,7 +2493,10 @@ void btm_sec_rmt_name_request_complete(const RawAddress* p_bd_addr,
       if (BTM_ReadRemoteDeviceName(btm_sec_cb.pairing_bda, NULL,
                                    BT_TRANSPORT_BR_EDR) != BTM_CMD_STARTED) {
         log::error("failed to start remote name request");
-        NotifyBondingChange(*p_dev_rec, HCI_ERR_MEMORY_FULL);
+        if (p_dev_rec->bd_addr == btm_sec_cb.pairing_bda){
+           log::error("notify bonding change state to IDLE");
+           NotifyBondingChange(*p_dev_rec, HCI_ERR_MEMORY_FULL);
+        }
       };
       return;
     }
