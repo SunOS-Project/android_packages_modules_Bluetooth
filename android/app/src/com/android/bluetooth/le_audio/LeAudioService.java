@@ -3346,10 +3346,12 @@ public class LeAudioService extends ProfileService {
                                     setDisconnected(true);
                                 }
                             }
-                            synchronized(mScanCallbackLock) {
-                                Log.d(TAG, " try to start background scan");
-                                startAudioServersBackgroundScan(/* retry= */ false);
-                            }
+                            mHandler.post(() -> {
+                                synchronized(mScanCallbackLock) {
+                                    Log.d(TAG, " try to start background scan");
+                                    startAudioServersBackgroundScan(/* retry= */ false);
+                                }
+                            });
 
                             boolean disconnectDueToUnbond =
                                     (BluetoothDevice.BOND_NONE
