@@ -2148,6 +2148,7 @@ class LeAudioClientImpl : public LeAudioClient {
           }
           if (group->IsStreaming() || !group->IsReleasingOrIdle()) {
             leAudioDevice->closing_stream_for_disconnection_ = true;
+            audio_sender_state_ = AudioState::READY_TO_RELEASE;
             groupStateMachine_->StopStream(group);
             return;
           }
