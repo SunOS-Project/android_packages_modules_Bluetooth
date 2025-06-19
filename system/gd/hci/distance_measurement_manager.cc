@@ -47,6 +47,7 @@
 #include "packet/packet_view.h"
 #include "ras/ras_packets.h"
 #include "device/include/csconfig.h"
+#include "osi/include/properties.h"
 
 using namespace bluetooth::ras;
 using bluetooth::hci::acl_manager::PacketViewForRecombination;
@@ -76,7 +77,7 @@ static constexpr uint16_t kMaxProcedureCount = 0x01;
 static constexpr uint32_t kMinSubeventLen = 0x0004E2;         // 1250us
 static constexpr uint32_t kMaxSubeventLen = 0x3d0900;         // 4s
 static constexpr uint8_t kTxPwrDelta = 0x00;
-static constexpr uint8_t kProcedureDataBufferSize = 0x10;  // Buffer size of Procedure data
+static uint8_t kProcedureDataBufferSize = 0x10;  // Buffer size of Procedure data
 static constexpr uint16_t kMtuForRasData = 507;            // 512 - 5
 static constexpr uint16_t kRangingCounterMask = 0x0FFF;
 static constexpr uint8_t kInvalidConfigId = 0xFF;
@@ -1970,7 +1971,11 @@ struct DistanceMeasurementManager::impl : bluetooth::hal::RangingHalCallback {
     BitInserter bi(ranging_header_raw);
     data_list.back().ranging_header_.Serialize(bi);
     append_vector(data_list.back().ras_raw_data_, ranging_header_raw);
-
+    char proc_buffer_size[PROPERTY_VALUE_MAX] = {0};
+    osi_property_get("persist.bluetooth.bcs.proc_buffer_size", proc_buffer_size, "");
+    if (strlen(proc_buffer_size) != 0) {
+      kProcedureDataBufferSize = static_cast<uint8_t>(atoi(proc_buffer_size));
+    }
     if (data_list.size() > kProcedureDataBufferSize) {
       log::warn("buffer full, drop procedure data with counter: {}", data_list.front().counter);
       data_list.erase(data_list.begin());
