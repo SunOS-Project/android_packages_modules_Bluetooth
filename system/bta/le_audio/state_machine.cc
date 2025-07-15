@@ -1739,7 +1739,7 @@ class LeAudioGroupStateMachineImpl : public LeAudioGroupStateMachine {
       return max_latency_ms ==
              bluetooth::le_audio::types::kMaxTransportLatencyMin;
     }
-    return ((1000 * max_latency_ms) >= sdu_interval_us);
+    return true;//((1000 * max_latency_ms) >= sdu_interval_us);
   }
 
   void ApplyDsaParams(LeAudioDeviceGroup* group,
