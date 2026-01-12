@@ -1297,8 +1297,12 @@ class LeAudioClientImpl : public LeAudioClient {
     }
 
     LeAudioDeviceGroup* group = aseGroups_.FindById(active_group_id_);
-    if (!group || !group->IsStreaming()) {
-      log::debug("{} is not streaming", active_group_id_);
+    //If group is under configuring/streaming to other context, it should do reconfiguration.
+    if (!group || (!group->IsStreaming() &&
+                    group->GetTargetState() != AseState::BTA_LE_AUDIO_ASE_STATE_STREAMING &&
+                    !(group->IsSuspendedForReconfiguration() &&
+                             configuration_context_type_ != LeAudioContextType::CONVERSATIONAL))) {
+      log::debug("{} is not streaming or not configuring to other contexts", active_group_id_);
       return;
     }
 
@@ -4960,6 +4964,10 @@ class LeAudioClientImpl : public LeAudioClient {
     }
   }
 
+  void OnSetSenderStateRelease(void) {
+    audio_sender_state_ = AudioState::READY_TO_RELEASE;
+  }
+
   void OnLocalAudioSinkSuspend() {
     log::info(
         "active group_id: {}, IN: audio_receiver_state_: {}, "
@@ -7248,6 +7256,10 @@ class CallbacksImpl : public LeAudioGroupStateMachine::Callbacks {
 
   void OnUpdatedCisConfiguration(int group_id, uint8_t direction) {
     if (instance) instance->OnUpdatedCisConfiguration(group_id, direction);
+  }
+
+  void OnSetSenderStateRelease() override {
+    if (instance) instance->OnSetSenderStateRelease();
   }
 };
 
